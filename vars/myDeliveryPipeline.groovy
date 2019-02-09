@@ -8,12 +8,9 @@ def call(body) {
     pipeline {
       agent any
       stages {
-          /* "Build" and "Test" stages omitted */
-
-          stage('Deploy - Staging') {
+          stage('Test') {
               steps {
-                  sh './deploy staging'
-                  sh './run-smoke-tests'
+                  sh 'make test'
               }
           }
 
