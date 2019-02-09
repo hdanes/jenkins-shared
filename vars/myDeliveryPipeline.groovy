@@ -6,51 +6,28 @@ def call(body) {
     body()
 
     pipeline {
-        agent any
-        stages {
-            stage('checkout git') {
-                steps {
-                    git branch: pipelineParams.branch, credentialsId: 'GitCredentials', url: pipelineParams.scmUrl
-                }
-            }
+      agent any
+      stages {
+          /* "Build" and "Test" stages omitted */
 
-            stage('build') {
-                steps {
-                    sh 'mvn clean package -DskipTests=true'
-                }
-            }
+          stage('Deploy - Staging') {
+              steps {
+                  sh './deploy staging'
+                  sh './run-smoke-tests'
+              }
+          }
 
-            stage ('test') {
-                steps {
-                    parallel (
-                        "unit tests": { sh 'mvn test' },
-                        "integration tests": { sh 'mvn integration-test' }
-                    )
-                }
-            }
+          stage('Sanity check') {
+              steps {
+                  input "Does the staging environment look ok?"
+              }
+          }
 
-            stage('deploy developmentServer'){
-                steps {
-                    deploy(pipelineParams.developmentServer, pipelineParams.serverPort)
-                }
-            }
-
-            stage('deploy staging'){
-                steps {
-                    deploy(pipelineParams.stagingServer, pipelineParams.serverPort)
-                }
-            }
-
-            stage('deploy production'){
-                steps {
-                    deploy(pipelineParams.productionServer, pipelineParams.serverPort)
-                }
-            }
-        }
-        post {
-            failure {
-                mail to: pipelineParams.email, subject: 'Pipeline failed', body: "${env.BUILD_URL}"
-            }
-        }
+          stage('Deploy - Production') {
+              steps {
+                  sh './deploy production'
+              }
+          }
+      }
     }
 }
